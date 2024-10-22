@@ -13,6 +13,7 @@ use Yii;
  * @property string|null $verification_method
  * @property string|null $issued_at
  * @property string|null $expired_at
+ * @property bool $active
  *
  * @property User $user
  */
@@ -36,7 +37,8 @@ class LoginVerification extends \yii\db\ActiveRecord
             [['user_id'], 'integer'],
             [['verification_method'], 'string'],
             [['issued_at', 'expired_at'], 'safe'],
-            [['code'], 'string', 'max' => 8],
+            [['code'], 'string', 'max' => 6],
+            [['active'], 'integer'],
             [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::class, 'targetAttribute' => ['user_id' => 'id']],
         ];
     }
@@ -53,6 +55,7 @@ class LoginVerification extends \yii\db\ActiveRecord
             'verification_method' => 'Verification Method',
             'issued_at' => 'Issued At',
             'expired_at' => 'Expired At',
+            'active' => 'Active'
         ];
     }
 
@@ -64,5 +67,16 @@ class LoginVerification extends \yii\db\ActiveRecord
     public function getUser()
     {
         return $this->hasOne(User::class, ['id' => 'user_id']);
+    }
+
+    public function handle() {
+        if($this->verification_method == 'email') {
+            Yii::$app->mailer->compose()
+                ->setFrom("website@example.com")
+                ->setTo($this->user->email)
+                ->setSubject("Login Two-Factor Verification")
+                ->setTextBody("Your verification code: ". $this->code ."\n"."Please don't share this bla bla bla")
+                ->send();
+        }
     }
 }

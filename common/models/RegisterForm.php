@@ -81,6 +81,7 @@ class RegisterForm extends Model
         $user->name = $this->username;
         $user->email = $this->email;
         $user->password_hash = Yii::$app->security->generatePasswordHash($this->password);
+        $user->two_fa_secret = Yii::$app->tfa->createSecret();
         $user->phone_number = $this->phone_number;
 
         return $user;

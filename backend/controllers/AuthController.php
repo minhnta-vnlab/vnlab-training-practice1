@@ -72,26 +72,43 @@ class AuthController extends Controller {
         $user = $model->login();
         
         if($user) {
-            Yii::$app->response->statusCode = 200;
-            $login_verification = new LoginVerification();
+            $login_verification = LoginVerification::find()->where(['user_id' => $user->id])->one();
+            if($login_verification === null) {
+                $login_verification = new LoginVerification();
+            }
             $time = time();
             $exp = $time + env('VERIFICATION_EXP') * 60;
+            $code = $user->two_fa_method == 'email' ? 
+            Yii::$app->security->generateRandomString(6)
+            : 
+            null;
             $login_verification->setAttributes([
                 'user_id' => $user->id,
                 'verification_method' => $user->two_fa_method,
-                'issued_at' => $time,
-                'expired_at' => $exp
+                'issued_at' => date('Y-m-d, H:i:s', $time),
+                'expired_at' => date('Y-m-d, H:i:s', $exp),
+                'code' => $code,
+                'active' => 1
             ]);
-            // return [
-            //     'message'=> 'Logged in successfully',
-            //     'data' => [
-            //         'user'=> [
-            //             'id' => $user->id,
-            //             'name' => $user->name,
-            //             'email' => $user->email,
-            //         ]
-            //     ]
-            // ];
+            if(!$login_verification->save())  {
+                Yii::$app->response->statusCode = 500;
+                return [
+                    'error' => 'Internal Server Error',
+                    'message' => 'Something wrong when creating verification',
+                    'data' => null
+                ];
+            }
+            $login_verification->handle();
+            Yii::$app->response->statusCode = 200;
+            return [
+                'message' => 'Successfully logged in by email and password, continue to verify the login.',
+                'data' => [
+                    'verification'=> [
+                        'id' => $login_verification->id,
+                        'verification_method' => $login_verification->verification_method,
+                    ]
+                ]
+            ];
         }
 
         Yii::$app->response->statusCode = 403; // Forbidden
@@ -99,6 +116,62 @@ class AuthController extends Controller {
             'message'=> 'Email or password is incorrect',
             'error' => 'Unauthorized',
             'data' => null
+        ];
+    }
+
+    public function actionVerify() {
+        $id = Yii::$app->request->get('id');
+        $login_verification = LoginVerification::findOne($id);
+        if(!$login_verification) {
+            Yii::$app->response->statusCode = 404;
+            return [
+                'error' => 'Not Found',
+                'message' => 'Login Verification with this id is not found',
+            ];
+        }
+        $expired_at = strtotime($login_verification->expired_at);
+
+        if(time() > $expired_at || $login_verification->active == 0) {
+            $login_verification->active = 0;
+            $login_verification->save();
+            Yii::$app->response->statusCode = 400;
+            return [
+                'error' => 'Bad request',
+                'message' => 'Login Verification already expired'
+            ];
+        }
+
+        $code = Yii::$app->request->post('code');
+
+        /**
+         * @var \backend\utils\twofa\TwoFAVerifier
+         */
+        $verifier = Yii::$app->twoFAVerifier;
+        $result = $verifier
+            ->useMethod($login_verification->verification_method)
+            ->verify($login_verification, $code);
+
+        if(!$result) {
+            Yii::$app->response->statusCode = 403;
+            return [
+                'error' => 'Unauthorized',
+                'message' => 'Verification code is not correct',
+            ];
+        }
+
+        $user = $login_verification->user;
+        $login_verification->active = 0;
+        $login_verification->save();
+
+        return [
+            'message' => 'Verified',
+            'data' => [
+                'user' => [
+                    'id'=> $user->id,
+                    'name' => $user->name,
+                    'email'=> $user->email,
+                ],
+            ]
         ];
     }
 }
