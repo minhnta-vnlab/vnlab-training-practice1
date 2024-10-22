@@ -2,7 +2,9 @@
 
 namespace frontend\controllers;
 
+use common\models\User;
 use frontend\models\ResendVerificationEmailForm;
+use frontend\models\TwoFAForm;
 use frontend\models\VerifyEmailForm;
 use Symfony\Component\Mime\Email;
 use Yii;
@@ -12,9 +14,9 @@ use yii\web\Controller;
 use yii\filters\VerbFilter;
 use yii\filters\AccessControl;
 use common\models\LoginForm;
+use common\models\RegisterForm;
 use frontend\models\PasswordResetRequestForm;
 use frontend\models\ResetPasswordForm;
-use frontend\models\SignupForm;
 use frontend\models\ContactForm;
 
 /**
@@ -91,8 +93,21 @@ class SiteController extends Controller
         }
 
         $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
+        if ($model->load(Yii::$app->request->post())) {
+            /**
+             * @var \yii\httpclient\Client
+             */
+            $httpClient = Yii::$app->httpClient;
+            $response = $httpClient
+                ->post('auth/login', $model->toArray())
+                ->send();
+            
+            if($response->statusCode == 200) {
+                $id = $response->data["data"]["verification"]["id"];
+                $method = $response->data["data"]["verification"]["verification_method"];
+                $email = $model->email;
+                return $this->redirect("/site/verify-login?id=$id&method=$method&email=$email");
+            }
         }
 
         $model->password = '';
@@ -154,14 +169,60 @@ class SiteController extends Controller
      */
     public function actionSignup()
     {
-        $model = new SignupForm();
-        if ($model->load(Yii::$app->request->post()) && $model->signup()) {
-            Yii::$app->session->setFlash('success', 'Thank you for registration. Please check your inbox for verification email.');
-            return $this->goHome();
+        $model = new RegisterForm();
+
+        if ($model->load(Yii::$app->request->post())) {
+            /**
+             *
+             * @var \yii\httpclient\Client
+             */
+            $httpClient = Yii::$app->httpClient;
+            $response = $httpClient
+                ->post("auth/register", $model->toArray())
+                ->send();
+            if ($response->getStatusCode() == 200) {
+                Yii::$app->session->setFlash("success","Thank you for registration. Please login into your account");
+            }
+            $this->redirect("/site/login");
         }
 
         return $this->render('signup', [
             'model' => $model,
+        ]);
+    }
+
+    public function actionVerifyLogin() {
+        $id = Yii::$app->request->get("id");
+        $method = Yii::$app->request->get("method");
+        $email = Yii::$app->request->get("email");
+        $model = new TwoFAForm();
+
+        if($model->load(Yii::$app->request->post())) {
+            /** @var \yii\httpclient\Client */
+            $httpClient = Yii::$app->httpClient;
+            $response = $httpClient
+                ->post("auth/verify?id=$id", $model->toArray())
+                ->send();
+            if ($response->getStatusCode() == 200) {
+                Yii::$app->session->setFlash("success","Login Successfully");
+
+                $user = new User();
+                $user->setAttributes(
+                    $response->data["data"]["user"]
+                );
+
+                Yii::$app->user->login($user);
+
+                return $this->goHome();
+            }
+        }
+
+        $model->code = '';
+
+        return $this->render('loginVerification', [
+            'method' => $method,
+            'email'=> $email,
+            'model'=> $model,
         ]);
     }
 

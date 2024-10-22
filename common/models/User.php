@@ -3,6 +3,7 @@
 namespace common\models;
 
 use Yii;
+use yii\web\IdentityInterface;
 
 /**
  * This is the model class for table "users".
@@ -19,7 +20,7 @@ use Yii;
  *
  * @property LoginHistory[] $loginhistories
  */
-class User extends \yii\db\ActiveRecord
+class User extends \yii\db\ActiveRecord implements IdentityInterface
 {
     /**
      * {@inheritdoc}
@@ -73,5 +74,30 @@ class User extends \yii\db\ActiveRecord
     public function getLoginHistories()
     {
         return $this->hasMany(LoginHistory::class, ['user_id' => 'id']);
+    }
+
+    public static function findIdentity($id)
+    {
+        return static::findOne($id);
+    }
+
+    public static function findIdentityByAccessToken($token, $type = null)
+    {
+        // Logic to find by access token
+    }
+
+    public function getId()
+    {
+        return $this->id; // Assuming you have an 'id' attribute
+    }
+
+    public function getAuthKey()
+    {
+        // Return an auth key if implemented
+    }
+
+    public function validateAuthKey($authKey)
+    {
+        // Logic to validate the auth key
     }
 }
