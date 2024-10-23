@@ -4,9 +4,14 @@
 /** @var yii\bootstrap5\ActiveForm $form */
 /** @var common\models\User $user */
 /** @var common\models\Update2FAForm $model */
+/** @var yii\data\ArrayDataProvider $dataProvider */
 
+use common\models\LoginHistory;
 use yii\bootstrap5\Html;
 use yii\bootstrap5\ActiveForm;
+use yii\grid\GridView;
+use yii\grid\ActionColumn;
+use yii\helpers\Url;
 
 $this->title = 'Profile';
 ?>
@@ -97,5 +102,23 @@ $this->title = 'Profile';
                 <?= Html::submitButton('Change', ['class' => 'btn btn-primary', 'name' => 'login-button', 'id' => 'submit-button', 'disabled' => true]) ?>
             </div>
         <?php ActiveForm::end(); ?>
+        <h3>Recent login</h3>
+        <?= GridView::widget([
+            'dataProvider' => $dataProvider,
+            'columns' => [
+                ['class' => 'yii\grid\SerialColumn'],
+                // 'id',
+                'login_time',
+                'ip',
+                'ua',
+                'message',
+                [
+                    'class' => ActionColumn::className(),
+                    'urlCreator' => function ($action, LoginHistory $model, $key, $index, $column) {
+                        return Url::toRoute([$action, 'id' => $model->id]);
+                    }
+                ],
+            ],
+        ]); ?>
     </div>
 </div>

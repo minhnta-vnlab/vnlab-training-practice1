@@ -45,8 +45,11 @@ return [
             'enableStrictParsing' => true,
             'showScriptName' => false,
             'rules' => [
-                ['class' => 'yii\rest\UrlRule', 'controller' => ['user'], 'prefix' => 'api'],
-                ['class' => 'yii\rest\UrlRule', 'controller' => ['login-history'], 'prefix' => 'api'],
+                [
+                    'class' => 'yii\rest\UrlRule', 
+                    'controller' => ['user', 'login-history'], 
+                    'prefix' => 'api'
+                ],
                 'POST api/auth/login' => 'auth/login', // Route for login
                 'POST api/auth/register' => 'auth/register', // Route for registration,
                 'POST api/auth/verify' => 'auth/verify', // Route for verification
