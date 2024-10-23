@@ -99,6 +99,10 @@ class SiteController extends Controller
                 $method = $response->data["data"]["verification"]["verification_method"];
                 $email = $model->email;
                 return $this->redirect("/site/verify-login?id=$id&method=$method&email=$email");
+            } else {
+                if(isset($response->data["message"])) {
+                    Yii::$app->session->setFlash("error", $response->data["message"]);
+                }
             }
         }
 
