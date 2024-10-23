@@ -49,7 +49,9 @@ return [
                 ['class' => 'yii\rest\UrlRule', 'controller' => ['login-history'], 'prefix' => 'api'],
                 'POST api/auth/login' => 'auth/login', // Route for login
                 'POST api/auth/register' => 'auth/register', // Route for registration,
-                'POST api/auth/verify' => 'auth/verify' // Route for verification
+                'POST api/auth/verify' => 'auth/verify', // Route for verification
+                'GET api/user/two-factor-qr' => 'user/two-factor-qr',
+                'PUT api/user/update-two-fa' => 'user/update-two-fa'
             ],
         ],
         'tfa' => new TwoFactorAuth(new EndroidQrCodeProvider()),

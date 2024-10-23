@@ -1,12 +1,10 @@
 <?php
 namespace frontend\models;
 
-use Yii;
 use yii\base\Model;
-use common\models\User;
 
 /**
- * Signup form
+ * 2FA Verification Form
  */
 class TwoFAForm extends Model {
     public $code;

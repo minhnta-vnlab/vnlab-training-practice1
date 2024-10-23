@@ -23,7 +23,7 @@ $this->params['breadcrumbs'][] = $this->title;
             }
         ?>
         <?php $form = ActiveForm::begin(['id' => 'login-verify-form']); ?>
-            <?= $form->field($model, "code")->textInput(['autofocus' => true]) ?>
+            <?= $form->field($model, "code")->textInput(['autofocus' => true, 'maxlength' => 6,]) ?>
             <div class="form-group">
                 <?= Html::submitButton('Submit', ['class' => 'btn btn-primary', 'name' => 'login-button']) ?>
             </div>
