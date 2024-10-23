@@ -4,6 +4,7 @@ namespace common\models;
 
 use Yii;
 use yii\base\Model;
+use yii\validators\EmailValidator;
 
 /**
  * Login form
@@ -63,6 +64,10 @@ class RegisterForm extends Model
                 $user = User::find()->where(['email'=> $this->$attribute])->one();
                 if(!empty($user)) {
                     $this->addError($attribute,'User with this email already exists.');
+                }
+                $emailValidator = new EmailValidator();
+                if(!$emailValidator->validate($this->email)) {
+                    $this->addError($attribute, 'Email is not valid.');
                 }
             } catch (\Exception $e) {
                 $this->addError($attribute, $e->getMessage());

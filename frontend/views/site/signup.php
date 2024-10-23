@@ -32,6 +32,7 @@ $this->params['breadcrumbs'][] = $this->title;
                 </div>
 
             <?php ActiveForm::end(); ?>
+            <p>Already had an account? <a href="/site/login">Login here</a></p>
         </div>
     </div>
 </div>
