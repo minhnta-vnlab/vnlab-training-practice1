@@ -202,6 +202,10 @@ class SiteController extends Controller
             $httpClient = Yii::$app->httpClient;
             $response = $httpClient
                 ->post("auth/verify?id=$id", $model->toArray())
+                ->setHeaders([
+                    "X-Forwarded-For" => Yii::$app->request->userIP,
+                    "User-Agent" => Yii::$app->request->userAgent
+                ])
                 ->send();
             if ($response->getStatusCode() == 200) {
                 Yii::$app->session->setFlash("success","Login Successfully");
@@ -210,8 +214,11 @@ class SiteController extends Controller
                 $user->setAttributes(
                     $response->data["data"]["user"]
                 );
+                $user->id = $response->data["data"]["user"]["id"];
 
-                Yii::$app->user->login($user);
+                if(!Yii::$app->user->login($user, 3600 * 24 * 30)) {
+                    Yii::$app->session->setFlash("error",Yii::$app->user);
+                }
 
                 return $this->goHome();
             }
