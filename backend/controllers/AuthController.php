@@ -2,6 +2,7 @@
 namespace backend\controllers;
 
 use common\models\LoginForm;
+use common\models\LoginHistory;
 use common\models\LoginVerification;
 use common\models\RegisterForm;
 use yii\rest\Controller;
@@ -162,6 +163,21 @@ class AuthController extends Controller {
         $user = $login_verification->user;
         $login_verification->active = 0;
         $login_verification->save();
+        
+        $ip = Yii::$app->request->userIP;
+        $remoteIp = Yii::$app->request->headers->get('X-Real-IP');
+        if ($remoteIp) {
+            $ip = $remoteIp;
+        }
+        $ua = Yii::$app->request->userAgent;
+
+        $login_history = new LoginHistory();
+        $login_history->user_id = $user->id;
+        $login_history->login_time = date('Y-m-d, H:i:s', time());
+        $login_history->message = "login_success";
+        $login_history->ip = $ip;
+        $login_history->ua = $ua;
+        $login_history->save();
 
         return [
             'message' => 'Verified',
@@ -171,6 +187,12 @@ class AuthController extends Controller {
                     'name' => $user->name,
                     'email'=> $user->email,
                 ],
+                'ip' => $ip,
+                // 'proxy' => $proxyIp,
+                'ua' => $ua,
+                // 'debug-request' => Yii::$app->request,
+                // 'debug-request-headers' => Yii::$app->request->headers,
+                // 'debug-request-secure-headers' => Yii::$app->request->secureHeaders,
             ]
         ];
     }

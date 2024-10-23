@@ -36,14 +36,16 @@ return [
         'errorHandler' => [
             'errorAction' => 'site/error',
         ],
-        /*
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
             ],
         ],
-        */
+        'httpClient' => [
+            'class' => yii\httpclient\Client::class,
+            'baseUrl' => 'http://nginx/api'
+        ]
     ],
     'params' => $params,
 ];

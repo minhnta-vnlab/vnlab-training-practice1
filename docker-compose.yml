@@ -1,41 +1,40 @@
-version: '3.2'
-
 services:
-  frontend:
-    build: frontend
+  nginx:
+    container_name: nginx-container
+    build: docker/nginx
     ports:
-      - 20080:80
+      - 80:80
     volumes:
-      # Re-use local composer cache via host-volume
-      - ~/.composer-docker/cache:/root/.composer/cache:delegated
-      # Mount source-code for development
       - ./:/app
-
-  backend:
-    build: backend
-    ports:
-      - 21080:80
+    restart: always
+    depends_on:
+      php:
+        condition: service_started
+      pgsql:
+        condition: service_healthy
+    networks:
+      - app-network
+    env_file:
+      - .env
+  
+  php:
+    container_name: php-fpm-container
+    build: docker/php-fpm
+    restart: always
     volumes:
-      # Re-use local composer cache via host-volume
-      - ~/.composer-docker/cache:/root/.composer/cache:delegated
-      # Mount source-code for development
       - ./:/app
-
-  # mysql:
-  #   image: mysql:5.7
-  #   environment:
-  #     - MYSQL_ROOT_PASSWORD=verysecret
-  #     - MYSQL_DATABASE=yii2advanced
-  #     - MYSQL_USER=yii2advanced
-  #     - MYSQL_PASSWORD=secret
+    networks:
+      - app-network
+    env_file:
+      - .env
 
   pgsql:
-    container_name: postgres_container
     image: postgres
+    container_name: postgresdb_container
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - ./data:/data
       - pgsql-database:/var/lib/postgresql/data
@@ -46,5 +45,14 @@ services:
       retries: 5
     ports:
       - 5432:5432
+    networks:
+      - app-network
+
 volumes:
   pgsql-database:
+
+networks:
+  app-network:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
