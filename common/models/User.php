@@ -4,6 +4,7 @@ namespace common\models;
 
 use Yii;
 use yii\web\IdentityInterface;
+use yii\base\NotSupportedException;
 
 /**
  * This is the model class for table "users".
@@ -83,21 +84,32 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
 
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        // Logic to find by access token
+        throw new NotSupportedException('"findIdentityByAccessToken" is not implemented.');
     }
+
+    public static function findByUsername($username)
+    {
+        return static::findOne(['name' => $username]);
+    }
+
+    // public function validatePassword($password)
+    // {
+    //     return Yii::$app->security->validatePassword($password, $this->password_hash);
+    // }
 
     public function getId()
     {
         return $this->id; // Assuming you have an 'id' attribute
     }
 
+
     public function getAuthKey()
     {
-        // Return an auth key if implemented
+        return $this->two_fa_secret;
     }
 
     public function validateAuthKey($authKey)
     {
-        // Logic to validate the auth key
+        return $this->getAuthKey() === $authKey;
     }
 }
