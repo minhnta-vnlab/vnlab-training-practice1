@@ -54,7 +54,7 @@ class AuthController extends Controller {
             Yii::$app->response->statusCode = 500; // Internal Server Error
             return [
                 'message'=> 'Register unsuccessfully',
-                'data' => null
+                'data' => $user
             ];
         } catch(\Exception $e) {
             Yii::error($e->getMessage(), __METHOD__);

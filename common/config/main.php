@@ -56,7 +56,7 @@ return [
         ],
         'gii' => [
             'class' => 'yii\gii\Module',
-            'allowedIPs' => ['*'] // adjust this to your needs
+            'allowedIPs' => ['127.0.0.1', '172.28.0.1'] // adjust this to your needs
         ],
     ]
 ];

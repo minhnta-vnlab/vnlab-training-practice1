@@ -140,8 +140,10 @@ class SiteController extends Controller
                 ->send();
             if ($response->getStatusCode() == 200) {
                 Yii::$app->session->setFlash("success","Thank you for registration. Please login into your account");
+                $this->redirect("/site/login");
+            } else {
+                Yii::$app->session->setFlash("error", $response->data["message"]);
             }
-            $this->redirect("/site/login");
         }
 
         return $this->render('signup', [
