@@ -157,7 +157,7 @@ class SiteController extends Controller
         $email = Yii::$app->request->get("email");
         $model = new TwoFAForm();
 
-        if($model->load(Yii::$app->request->post())) {
+        if(empty($method) || $model->load(Yii::$app->request->post())) {
             /** @var \yii\httpclient\Client */
             $httpClient = Yii::$app->httpClient;
             $response = $httpClient
@@ -181,6 +181,8 @@ class SiteController extends Controller
                 }
 
                 return $this->goHome();
+            } else {
+                Yii::$app->session->setFlash("error",$response->data["message"]);
             }
         }
 

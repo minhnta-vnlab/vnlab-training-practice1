@@ -10,8 +10,11 @@ class TwoFAVerifier implements ITwoFAVerifier {
         $this->method = $method;
     }
 
-    public function useMethod(string $method) {
+    public function useMethod(string|null $method) {
         $this->method = $method;
+        if(empty($this->method)) {
+            return $this->useVerifier(NoTwoFAVerifier::getInstance());
+        }
         if($this->method == 'email') {
             return $this->useVerifier(EmailTwoFAVerifier::getInstance());
         }
@@ -26,7 +29,7 @@ class TwoFAVerifier implements ITwoFAVerifier {
         return $this;
     }
 
-    public function verify(LoginVerification $login_verification, string $token): bool {
+    public function verify(LoginVerification $login_verification, string|null $token): bool {
         return $this->verifier->verify($login_verification, $token);
     }
 }
