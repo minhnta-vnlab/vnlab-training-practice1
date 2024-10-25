@@ -1,5 +1,4 @@
 <?php
-
 namespace frontend\controllers;
 
 use common\models\User;
@@ -10,15 +9,21 @@ use yii\filters\VerbFilter;
 use yii\filters\AccessControl;
 use common\models\LoginForm;
 use common\models\RegisterForm;
+use frontend\services\AuthService;
 
 /**
  * Site controller
  */
 class SiteController extends Controller
 {
-    /**
-     * {@inheritdoc}
-     */
+    protected $authService;
+
+    public function __construct($id, $module, AuthService $authService, $config = [])
+    {
+        $this->authService = $authService;
+        parent::__construct($id, $module, $config);
+    }
+
     public function behaviors()
     {
         return [
@@ -47,9 +52,6 @@ class SiteController extends Controller
         ];
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function actions()
     {
         return [
@@ -63,147 +65,48 @@ class SiteController extends Controller
         ];
     }
 
-    /**
-     * Displays homepage.
-     *
-     * @return mixed
-     */
     public function actionIndex()
     {
         return $this->render('index');
     }
 
-    /**
-     * Logs in a user.
-     *
-     * @return mixed
-     */
     public function actionLogin()
     {
-        if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
+        $model = $this->authService->handleLogin();
+        if ($model instanceof LoginForm) {
+            return $this->render('login', ['model' => $model]);
         }
-
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post())) {
-            /**
-             * @var \yii\httpclient\Client
-             */
-            $httpClient = Yii::$app->httpClient;
-            $response = $httpClient
-                ->post('auth/login', $model->toArray())
-                ->setHeaders([
-                    "X-Forwarded-For" => Yii::$app->request->userIP,
-                    "User-Agent" => Yii::$app->request->userAgent,
-                ])
-                ->send();
-        
-            // Yii::debug($response);
-                
-            if($response->statusCode == 200) {
-                $id = $response->data["data"]["verification"]["id"];
-                $method = $response->data["data"]["verification"]["verification_method"];
-                $email = $model->email;
-                return $this->redirect("/site/verify-login?id=$id&method=$method&email=$email");
-            } else {
-                if(isset($response->data["message"])) {
-                    Yii::$app->session->setFlash("error", $response->data["message"]);
-                }
-            }
-        }
-
-        $model->password = '';
-
-        return $this->render('login', [
-            'model' => $model,
-        ]);
+        return $model; // Redirect or response based on successful login
     }
 
-    /**
-     * Logs out the current user.
-     *
-     * @return mixed
-     */
     public function actionLogout()
     {
         Yii::$app->user->logout();
-
         return $this->goHome();
     }
 
     public function actionSignup()
     {
-        $model = new RegisterForm();
-
-        if ($model->load(Yii::$app->request->post())) {
-            /**
-             *
-             * @var \yii\httpclient\Client
-             */
-            $httpClient = Yii::$app->httpClient;
-            $response = $httpClient
-                ->post("auth/register", $model->toArray())
-                ->send();
-            if ($response->getStatusCode() == 200) {
-                Yii::$app->session->setFlash("success","Thank you for registration. Please login into your account");
-                $this->redirect("/site/login");
-            } else {
-                Yii::$app->session->setFlash("error", $response->data["message"]);
-            }
+        $model = $this->authService->handleSignup();
+        if ($model instanceof RegisterForm) {
+            return $this->render('signup', ['model' => $model]);
         }
-
-        return $this->render('signup', [
-            'model' => $model,
-        ]);
+        return $model; // Redirect or response based on successful signup
     }
 
-    public function actionVerifyLogin() {
-        $id = Yii::$app->request->get("id");
-        $method = Yii::$app->request->get("method");
-        $email = Yii::$app->request->get("email");
+    public function actionVerifyLogin()
+    {
         $model = new TwoFAForm();
+        $result = $this->authService->handleVerifyLogin($model);
 
-        if(empty($method) || $model->load(Yii::$app->request->post())) {
-            /** @var \yii\httpclient\Client */
-            $httpClient = Yii::$app->httpClient;
-            $response = $httpClient
-                ->post("auth/verify?id=$id", $model->toArray())
-                ->setHeaders([
-                    "X-Forwarded-For" => Yii::$app->request->userIP,
-                    "User-Agent" => Yii::$app->request->userAgent
-                ])
-                ->send();
-            if ($response->getStatusCode() == 200) {
-                Yii::$app->session->setFlash("success","Login Successfully");
-
-                $user = new User();
-                $user->setAttributes(
-                    $response->data["data"]["user"]
-                );
-                $user->id = $response->data["data"]["user"]["id"];
-
-                if(!Yii::$app->user->login($user, 3600 * 24 * 30)) {
-                    Yii::$app->session->setFlash("error",Yii::$app->user);
-                }
-
-                return $this->goHome();
-            } else {
-                Yii::$app->session->setFlash("error",$response->data["message"]);
-                if(isset($response->data['data']['redirect'])) {
-                    $redirect = $response->data['data']['redirect'];
-                    if($redirect == 'login') {
-                        return $this->redirect('/site/login');
-                    }
-                }
-            }
+        if (isset($result['redirect'])) {
+            return $this->redirect($result['redirect']);
         }
 
-        $model->code = '';
-
         return $this->render('loginVerification', [
-            'method' => $method,
-            'email'=> $email,
-            'model'=> $model,
+            'method' => $result['method'],
+            'email' => $result['email'],
+            'model' => $model,
         ]);
     }
 }
