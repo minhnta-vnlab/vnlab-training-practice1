@@ -82,4 +82,12 @@ class LoginVerification extends \yii\db\ActiveRecord
                 ->send();
         }
     }
+
+    public function isExpired() {
+        return time() > strtotime($this->expired_at) || $this->active == 0;
+    }
+
+    public function hasExceedMaxTries() {
+        return $this->num_try >= $this->max_try;
+    }
 }
