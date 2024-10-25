@@ -58,11 +58,11 @@ class LoginForm extends Model
     {
         if (!$this->hasErrors()) {
             $user = $this->getUser();
-            if($user === null) {
+            if(empty($user)) {
                 $this->addError($attribute,'User with this email not found');
             }
         }
-        return $user;
+        return isset($user) ? $user : null;
     }
 
     /**

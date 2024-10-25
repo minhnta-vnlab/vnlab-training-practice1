@@ -5,6 +5,8 @@ use common\models\LoginForm;
 use common\models\LoginHistory;
 use common\models\LoginVerification;
 use common\models\RegisterForm;
+use backend\utils\DateConverter;
+use common\models\User;
 use yii\rest\Controller;
 use Yii;
 use yii\web\Response;
@@ -86,10 +88,11 @@ class AuthController extends Controller {
             $login_verification->setAttributes([
                 'user_id' => $user->id,
                 'verification_method' => $user->two_fa_method,
-                'issued_at' => date('Y-m-d, H:i:s', $time),
-                'expired_at' => date('Y-m-d, H:i:s', $exp),
+                'issued_at' => DateConverter::convertToSQL($time),
+                'expired_at' => DateConverter::convertToSQL($exp),
                 'code' => $code,
-                'active' => 1
+                'active' => 1,
+                'num_try' => 0,
             ]);
             if(!$login_verification->save())  {
                 Yii::$app->response->statusCode = 500;
@@ -112,7 +115,17 @@ class AuthController extends Controller {
             ];
         }
 
-        $user = $model->validateEmail($model->email, []);
+        $user = User::find()->where(['email'=> $model->email])->one();
+
+        if($user !== null) {
+            $login_history = new LoginHistory();
+            $login_history->user_id = $user->id;
+            $login_history->message = "login_fail_wrong_password";
+            $remoteIp = Yii::$app->request->headers->get('X-Real-IP');
+            $login_history->ip = $remoteIp;
+            $login_history->ua = Yii::$app->request->userAgent;
+            $login_history->save();
+        }
 
         Yii::$app->response->statusCode = 403; // Forbidden
         return [
@@ -125,6 +138,14 @@ class AuthController extends Controller {
     public function actionVerify() {
         $id = Yii::$app->request->get('id');
         $login_verification = LoginVerification::findOne($id);
+
+        $ip = Yii::$app->request->userIP;
+        $remoteIp = Yii::$app->request->headers->get('X-Real-IP');
+        if ($remoteIp) {
+            $ip = $remoteIp;
+        }
+        $ua = Yii::$app->request->userAgent;
+
         if(!$login_verification) {
             Yii::$app->response->statusCode = 404;
             return [
@@ -132,17 +153,55 @@ class AuthController extends Controller {
                 'message' => 'Login Verification with this id is not found',
             ];
         }
+
         $expired_at = strtotime($login_verification->expired_at);
+        $user = $login_verification->user;
+        $current_try = $login_verification->num_try + 1;
 
         if(time() > $expired_at || $login_verification->active == 0) {
+            // Only log login_history when detect the login_verification->active is 1
+            if($login_verification->active == 1) {
+                $login_history = new LoginHistory();
+                $login_history->user_id = $user->id;
+                $login_history->message = "login_fail_verification_expired";
+                $login_history->login_time = $login_verification->issued_at;
+                $login_history->ip = $ip;
+                $login_history->ua = $ua;
+                $login_history->save();
+            }
+
             $login_verification->active = 0;
             $login_verification->save();
+
             Yii::$app->response->statusCode = 400;
             return [
                 'error' => 'Bad request',
-                'message' => 'Login Verification already expired'
+                'message' => 'Login Verification already expired',
+                'redirect' => 'login'
             ];
         }
+
+        if($current_try > $login_verification->max_try) {
+            $login_verification->active = 0;
+            $login_verification->save();
+
+            $login_history = new LoginHistory();
+            $login_history->user_id = $user->id;
+            $login_history->message = "login_fail_verification_max_try";
+            $login_history->login_time = $login_verification->issued_at;
+            $login_history->ip = $ip;
+            $login_history->ua = $ua;
+            $login_history->save();
+
+            Yii::$app->response->statusCode = 400;
+            return [
+                'error' => 'Bad request',
+                'message' => 'Reached the maximum number of verification attempts',
+                'redirect' => 'login'
+            ];
+        }
+        $login_verification->num_try = $current_try;
+        $login_verification->save();
 
         $code = Yii::$app->request->post('code');
 
@@ -154,11 +213,17 @@ class AuthController extends Controller {
             ->useMethod($login_verification->verification_method)
             ->verify($login_verification, $code);
 
+        $remain = $login_verification->max_try - $current_try;
         if(!$result) {
             Yii::$app->response->statusCode = 403;
             return [
                 'error' => 'Unauthorized',
-                'message' => 'Verification code is not correct',
+                'message' => "Verification code is not correct. You have ".$remain." attemps left.".
+                "",
+                'data' => [
+                    'num_try' => $current_try,
+                    'max_try' => $login_verification->max_try
+                ]
             ];
         }
 
@@ -166,16 +231,8 @@ class AuthController extends Controller {
         $login_verification->active = 0;
         $login_verification->save();
         
-        $ip = Yii::$app->request->userIP;
-        $remoteIp = Yii::$app->request->headers->get('X-Real-IP');
-        if ($remoteIp) {
-            $ip = $remoteIp;
-        }
-        $ua = Yii::$app->request->userAgent;
-
         $login_history = new LoginHistory();
         $login_history->user_id = $user->id;
-        $login_history->login_time = date('Y-m-d, H:i:s', time());
         $login_history->message = "login_success";
         $login_history->ip = $ip;
         $login_history->ua = $ua;

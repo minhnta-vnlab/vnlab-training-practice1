@@ -36,16 +36,23 @@ class ProfileController extends Controller {
          */
         $client = Yii::$app->httpClient;
 
-        if($model->load(Yii::$app->request->post()) && $model->validate() && $model->two_fa_method != $user->two_fa_method) {
+        $model->load(Yii::$app->request->post());
+
+        if($model->validate() && $model->two_fa_method !== $user->two_fa_method) {
             $response = $client
                 ->put("user/update-two-fa", $model->toArray())
                 ->send();
+            Yii::debug($response);
             if($response->statusCode == 200) {
                 Yii::$app->session->setFlash("success","Updated 2FA method");
                 Yii::$app->user->identity->two_fa_method = $model->two_fa_method;
             } else {
                 Yii::debug($response);
-                // Yii::$app->session->setFlash("error", $response->data);
+                Yii::$app->session->setFlash("error", $response->data['message']);
+            }
+        } else {
+            if(Yii::$app->request->isPost) {
+                Yii::$app->session->setFlash('error', $model->getFirstErrors());
             }
         }
 
@@ -68,7 +75,7 @@ class ProfileController extends Controller {
             }, $response->data);
 
             $dataProvider = new ArrayDataProvider([
-                'allModels' => array_slice($login_histories, 0, 5)
+                'allModels' => $login_histories
             ]);
         }
 
