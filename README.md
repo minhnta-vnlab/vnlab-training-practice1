@@ -5,6 +5,15 @@ Make `.env` with content like the example below:
 POSTGRES_DB=<postgres database>
 POSTGRES_USER=<postgres username>
 POSTGRES_PASSWORD=<postgres password>
+
+# Mailtrap SMTP
+MAILTRAP_HOST=<sandbox.smtp.mailtrap.io>
+MAILTRAP_USERNAME=<mailtrap_username>
+MAILTRAP_PASSWORD=<mailtrap_password>
+MAILTRAP_PORT=2525
+
+# Authentication
+VERIFICATION_EXP=30 #minutes
 ```
 ## Run by Docker
 Compose everything into Docker
