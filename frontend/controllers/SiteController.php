@@ -92,8 +92,14 @@ class SiteController extends Controller
             $httpClient = Yii::$app->httpClient;
             $response = $httpClient
                 ->post('auth/login', $model->toArray())
+                ->setHeaders([
+                    "X-Forwarded-For" => Yii::$app->request->userIP,
+                    "User-Agent" => Yii::$app->request->userAgent,
+                ])
                 ->send();
-            
+        
+            // Yii::debug($response);
+                
             if($response->statusCode == 200) {
                 $id = $response->data["data"]["verification"]["id"];
                 $method = $response->data["data"]["verification"]["verification_method"];
@@ -183,6 +189,12 @@ class SiteController extends Controller
                 return $this->goHome();
             } else {
                 Yii::$app->session->setFlash("error",$response->data["message"]);
+                if(isset($response->data['data']['redirect'])) {
+                    $redirect = $response->data['data']['redirect'];
+                    if($redirect == 'login') {
+                        return $this->redirect('/site/login');
+                    }
+                }
             }
         }
 

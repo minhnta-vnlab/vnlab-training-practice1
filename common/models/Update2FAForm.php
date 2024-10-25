@@ -15,6 +15,7 @@ class Update2FAForm extends Model {
     public function rules() {
         return [
             [["user_id"], "required"],
+            ["two_fa_method", "safe"],
             ["code", "string", "max" => 6],
         ];
     }

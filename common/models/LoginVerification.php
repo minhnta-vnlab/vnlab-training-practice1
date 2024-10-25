@@ -13,7 +13,9 @@ use Yii;
  * @property string|null $verification_method
  * @property string|null $issued_at
  * @property string|null $expired_at
- * @property bool $active
+ * @property int|null $active
+ * @property int|null $max_try
+ * @property int|null $num_try
  *
  * @property User $user
  */
@@ -33,12 +35,11 @@ class LoginVerification extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['user_id'], 'default', 'value' => null],
-            [['user_id'], 'integer'],
+            [['user_id', 'active', 'max_try', 'num_try'], 'default', 'value' => null],
+            [['user_id', 'active', 'max_try', 'num_try'], 'integer'],
             [['verification_method'], 'string'],
             [['issued_at', 'expired_at'], 'safe'],
             [['code'], 'string', 'max' => 6],
-            [['active'], 'integer'],
             [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::class, 'targetAttribute' => ['user_id' => 'id']],
         ];
     }
@@ -55,7 +56,9 @@ class LoginVerification extends \yii\db\ActiveRecord
             'verification_method' => 'Verification Method',
             'issued_at' => 'Issued At',
             'expired_at' => 'Expired At',
-            'active' => 'Active'
+            'active' => 'Active',
+            'max_try' => 'Max Try',
+            'num_try' => 'Num Try',
         ];
     }
 
