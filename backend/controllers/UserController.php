@@ -85,8 +85,12 @@
                     ];
                 }
             }
-    
-            $user->two_fa_method = $model->two_fa_method;
+            
+            if(empty($model->two_fa_method)) {
+                $user->two_fa_method = null;
+            } else {
+                $user->two_fa_method = $model->two_fa_method;
+            }
             if($user->save()) {
                 return [
                     'message' => "Successfully updated user's 2FA method",
