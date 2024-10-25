@@ -112,6 +112,8 @@ class AuthController extends Controller {
             ];
         }
 
+        $user = $model->validateEmail($model->email, []);
+
         Yii::$app->response->statusCode = 403; // Forbidden
         return [
             'message'=> 'Email or password is incorrect',

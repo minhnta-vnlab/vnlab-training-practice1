@@ -62,6 +62,7 @@ class LoginForm extends Model
                 $this->addError($attribute,'User with this email not found');
             }
         }
+        return $user;
     }
 
     /**

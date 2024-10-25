@@ -13,7 +13,7 @@ class AuthenticatorTwoFAVerifier implements ITwoFAVerifier {
         }
         return self::$instance;
     }
-    public function verify(LoginVerification $login_verification, string $token): bool {
+    public function verify(LoginVerification $login_verification, string|null $token): bool {
         $secret = $login_verification->user->two_fa_secret;
         /** @var TwoFactorAuth $tfa */
         $tfa = Yii::$app->tfa;

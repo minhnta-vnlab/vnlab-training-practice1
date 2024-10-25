@@ -65,6 +65,7 @@ $this->title = 'Profile';
             ->field($model, "two_fa_method")
             ->label("Two-Factor Authentication Method")
             ->dropDownList([
+                '' => 'None',
                 'email' => 'Email',
                 'google_authenticator' => 'Authenticator'
             ]) ?>
@@ -112,12 +113,12 @@ $this->title = 'Profile';
                 'ip',
                 'ua',
                 'message',
-                [
-                    'class' => ActionColumn::className(),
-                    'urlCreator' => function ($action, LoginHistory $model, $key, $index, $column) {
-                        return Url::toRoute([$action, 'id' => $model->id]);
-                    }
-                ],
+                // [
+                //     'class' => ActionColumn::className(),
+                //     'urlCreator' => function ($action, LoginHistory $model, $key, $index, $column) {
+                //         return Url::toRoute([$action, 'id' => $model->id]);
+                //     }
+                // ],
             ],
         ]); ?>
     </div>
