@@ -11,7 +11,21 @@ use backend\services\UserService;
 class UserController extends ActiveController
 {
     public $modelClass = "common\models\User";
+    public $cacheKey;
     protected $userService;
+
+    public function behaviors() {
+        $behaviors = parent::behaviors();
+        $behaviors['cache'] = [
+            'class'=> \backend\behaviors\CacheBehavior::class,
+            'modelClass' => $this->modelClass
+        ];
+        $behaviors['cacheInvalidation'] = [
+            'class'=> \backend\behaviors\CacheInvalidationBehavior::class,
+            'modelClass' => $this->modelClass
+        ];
+        return $behaviors;
+    }
 
     public function __construct($id, $module, UserService $userService, $config = [])
     {
