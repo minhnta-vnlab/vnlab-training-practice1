@@ -35,7 +35,8 @@ class LoginVerification extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['user_id', 'active', 'max_try', 'num_try'], 'default', 'value' => null],
+            [['user_id', 'active', 'num_try'], 'default', 'value' => null],
+            ['max_try', 'default', 'value'=> 5],
             [['user_id', 'active', 'max_try', 'num_try'], 'integer'],
             [['verification_method'], 'string'],
             [['issued_at', 'expired_at'], 'safe'],
