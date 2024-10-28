@@ -30,7 +30,7 @@ class __Application {
 }
 
 /**
- * @property common\models\User $identity
+ * @property frontend\models\User $identity
  */
 class __WebUser {
 }

@@ -5,6 +5,7 @@
 
     class LoginHistoryController extends ActiveController {
         public $modelClass = "common\models\LoginHistory";
+        public $cacheKey;
 
         public function actions()
         {
@@ -16,5 +17,18 @@
             ];
 
             return $actions;
+        }
+
+        public function behaviors() {
+            $behaviors = parent::behaviors();
+            $behaviors['cache'] = [
+                'class'=> \backend\behaviors\CacheBehavior::class,
+                'modelClass' => $this->modelClass
+            ];
+            $behaviors['cacheInvalidation'] = [
+                'class'=> \backend\behaviors\CacheInvalidationBehavior::class,
+                'modelClass' => $this->modelClass
+            ];
+            return $behaviors;
         }
     }
