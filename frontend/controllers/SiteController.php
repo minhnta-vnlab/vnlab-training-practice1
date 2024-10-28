@@ -1,15 +1,18 @@
 <?php
 namespace frontend\controllers;
 
-use common\models\User;
+use frontend\models\User;
+use frontend\consts\TagKey;
 use frontend\models\TwoFAForm;
+use frontend\consts\CacheKey;
+use frontend\services\AuthService;
 use Yii;
+use yii\caching\TagDependency;
 use yii\web\Controller;
 use yii\filters\VerbFilter;
 use yii\filters\AccessControl;
 use common\models\LoginForm;
 use common\models\RegisterForm;
-use frontend\services\AuthService;
 
 /**
  * Site controller
@@ -27,6 +30,15 @@ class SiteController extends Controller
     public function behaviors()
     {
         return [
+            [
+                'class' => 'yii\filters\PageCache',
+                'only' => ['index'],
+                'duration' => 60,
+                'variations' => [
+                    Yii::$app->language,
+                ],
+                'dependency' => new TagDependency(['tags' => TagKey::USER])
+            ],
             'access' => [
                 'class' => AccessControl::class,
                 'only' => ['logout', 'signup'],
@@ -82,6 +94,7 @@ class SiteController extends Controller
     public function actionLogout()
     {
         Yii::$app->user->logout();
+        TagDependency::invalidate(Yii::$app->cache, TagKey::USER->name);
         return $this->goHome();
     }
 

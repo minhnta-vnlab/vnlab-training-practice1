@@ -32,6 +32,7 @@ class LoginHistory extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
+            ['id', 'integer'],
             [['user_id'], 'default', 'value' => null],
             [['user_id'], 'integer'],
             [['ip'], 'string'],
