@@ -37,6 +37,7 @@ class SiteController extends Controller
                 'variations' => [
                     Yii::$app->language,
                 ],
+                'dependency' => new TagDependency(['tags' => TagKey::USER])
             ],
             'access' => [
                 'class' => AccessControl::class,
