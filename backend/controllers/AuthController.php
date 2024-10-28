@@ -3,10 +3,10 @@ namespace backend\controllers;
 
 use common\models\LoginForm;
 use common\models\LoginHistory;
-use common\models\LoginVerification;
 use common\models\RegisterForm;
+use backend\models\LoginVerification;
 use backend\utils\DateConverter;
-use common\models\User;
+use backend\models\User;
 use yii\rest\Controller;
 use Yii;
 use yii\web\Response;

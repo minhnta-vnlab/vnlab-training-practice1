@@ -1,6 +1,6 @@
 <?php
 namespace backend\utils\twofa;
-use common\models\LoginVerification;
+use backend\models\LoginVerification;
 class EmailTwoFAVerifier implements ITwoFAVerifier {
     private function __construct() {}
     private static EmailTwoFAVerifier $instance;

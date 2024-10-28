@@ -1,6 +1,6 @@
 <?php
 namespace backend\utils\twofa;
-use common\models\LoginVerification;
+use backend\models\LoginVerification;
 use Yii;
 use RobThree\Auth\TwoFactorAuth;
 
