@@ -1,17 +1,19 @@
 <?php
 
+
 /** @var yii\web\View $this */
 /** @var yii\bootstrap5\ActiveForm $form */
 /** @var common\models\User $user */
 /** @var common\models\Update2FAForm $model */
 /** @var yii\data\ArrayDataProvider $dataProvider */
 
-use common\models\LoginHistory;
+use frontend\consts\CacheKey;
+use frontend\consts\TagKey;
 use yii\bootstrap5\Html;
 use yii\bootstrap5\ActiveForm;
+use yii\caching\TagDependency;
 use yii\grid\GridView;
-use yii\grid\ActionColumn;
-use yii\helpers\Url;
+if($this->beginCache(CacheKey::PROFILE_PAGE_INDEX->name)) {
 
 $this->title = 'Profile';
 ?>
@@ -104,6 +106,14 @@ $this->title = 'Profile';
             </div>
         <?php ActiveForm::end(); ?>
         <h3>Recent login</h3>
+<?php
+    $this->endCache();
+}
+if($this->beginCache(CacheKey::PROFILE_PAGE_LOGIN_HISTORIES->name, [
+    'dependency' => new TagDependency(['tags' => TagKey::USER_LOGIN_HISTORIES->name])
+])) {
+    Yii::debug("Renew");
+?>
         <?= GridView::widget([
             'dataProvider' => $dataProvider,
             'columns' => [
@@ -121,5 +131,9 @@ $this->title = 'Profile';
                 // ],
             ],
         ]); ?>
+<?php
+    $this->endCache();
+}
+?>
     </div>
 </div>

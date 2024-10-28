@@ -5,10 +5,13 @@
 
 use common\widgets\Alert;
 use frontend\assets\AppAsset;
+use frontend\consts\CacheKey;
+use frontend\consts\TagKey;
 use yii\bootstrap5\Breadcrumbs;
 use yii\bootstrap5\Html;
 use yii\bootstrap5\Nav;
 use yii\bootstrap5\NavBar;
+use yii\caching\TagDependency;
 
 AppAsset::register($this);
 ?>
@@ -47,15 +50,21 @@ AppAsset::register($this);
         'options' => ['class' => 'navbar-nav me-auto mb-2 mb-md-0'],
         'items' => $menuItems,
     ]);
-    if (Yii::$app->user->isGuest) {
-        echo Html::tag('div',Html::a('Login',['/site/login'],['class' => ['btn btn-link login text-decoration-none']]),['class' => ['d-flex']]);
-    } else {
-        echo Html::beginForm(['/site/logout'], 'post', ['class' => 'd-flex'])
-            . Html::submitButton(
-                'Logout (' . Yii::$app->user->identity->name . ')',
-                ['class' => 'btn btn-link logout text-decoration-none']
-            )
-            . Html::endForm();
+    if($this->beginCache("layouts-nav", [
+        'dependency' => new TagDependency(['tags' => TagKey::USER->name])
+    ])) {
+        // Yii::debug("Renew");
+        if (Yii::$app->user->isGuest) {
+            echo Html::tag('div',Html::a('Login',['/site/login'],['class' => ['btn btn-link login text-decoration-none']]),['class' => ['d-flex']]);
+        } else {
+            echo Html::beginForm(['/site/logout'], 'post', ['class' => 'd-flex'])
+                . Html::submitButton(
+                    'Logout (' . Yii::$app->user->identity->name . ')',
+                    ['class' => 'btn btn-link logout text-decoration-none']
+                )
+                . Html::endForm();
+        }
+        $this->endCache();
     }
     NavBar::end();
     ?>

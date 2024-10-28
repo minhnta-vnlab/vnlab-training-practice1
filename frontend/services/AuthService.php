@@ -4,8 +4,11 @@ namespace frontend\services;
 use common\models\User;
 use common\models\LoginForm;
 use common\models\RegisterForm;
+use frontend\consts\TagKey;
 use frontend\models\TwoFAForm;
+use frontend\consts\CacheKey;
 use Yii;
+use yii\caching\TagDependency;
 
 class AuthService
 {
@@ -80,6 +83,7 @@ class AuthService
                 if (!Yii::$app->user->login($user, 3600 * 24 * 30)) {
                     Yii::$app->session->setFlash("error", "Login failed.");
                 }
+                TagDependency::invalidate(Yii::$app->cache, TagKey::USER->name);
 
                 return ['redirect' => '/site/index'];
             } else {
