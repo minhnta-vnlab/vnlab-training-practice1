@@ -22,7 +22,9 @@ class CacheInvalidationBehavior extends Behavior
         // Check if the action is a CUD operation
         if (in_array($action, ['create', 'update', 'delete'])) {
             $cacheKey = $this->generateCacheKey();
-            Yii::$app->cache->delete($cacheKey);
+            foreach (['create', 'update', 'delete'] as $action) {
+                $this->cache->delete($cacheKey.$action);
+            }
             
             // Optionally, invalidate related cache keys
             // Yii::$app->cache->delete('related_cache_key');

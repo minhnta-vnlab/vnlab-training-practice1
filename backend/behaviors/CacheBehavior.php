@@ -29,7 +29,6 @@ class CacheBehavior extends Behavior {
         // $data = false;
         if ($data !== false) {
             // If data exists in cache, send it as a response
-            $data['cache_key'] = $cacheKey;
             $event->sender->response->format = \yii\web\Response::FORMAT_JSON;
             $event->sender->response->data = $data;
             $event->isValid = false; // Prevent the action from being executed
