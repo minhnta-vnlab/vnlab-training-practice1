@@ -1,9 +1,9 @@
 <?php
 namespace frontend\services;
 
-use common\models\User;
 use common\models\LoginForm;
 use common\models\RegisterForm;
+use frontend\models\User;
 use frontend\consts\TagKey;
 use frontend\models\TwoFAForm;
 use frontend\consts\CacheKey;

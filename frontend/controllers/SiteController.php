@@ -1,7 +1,7 @@
 <?php
 namespace frontend\controllers;
 
-use common\models\User;
+use frontend\models\User;
 use frontend\consts\TagKey;
 use frontend\models\TwoFAForm;
 use frontend\consts\CacheKey;
@@ -32,7 +32,7 @@ class SiteController extends Controller
         return [
             [
                 'class' => 'yii\filters\PageCache',
-                'only' => ['index', 'login', 'signup', 'verify-login'],
+                'only' => ['index'],
                 'duration' => 60,
                 'variations' => [
                     Yii::$app->language,

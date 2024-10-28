@@ -14,7 +14,7 @@ use yii\bootstrap5\ActiveForm;
 use yii\caching\TagDependency;
 use yii\grid\GridView;
 if($this->beginCache(CacheKey::PROFILE_PAGE_INDEX->name)) {
-
+Yii::debug("Renew?");
 $this->title = 'Profile';
 ?>
 <script>
