@@ -23,6 +23,7 @@ class Yii {
  * @property \yii\web\User|__WebUser $user
  * @property RobThree\Auth\TwoFactorAuth $tfa
  * @property \backend\utils\twofa\TwoFAVerifier $twoFAVerifier
+ * @property yii\httpclient\Client $httpClient
  * 
  */
 class __Application {
