@@ -20,7 +20,7 @@ class UserLock extends \yii\db\ActiveRecord
      */
     public static function tableName()
     {
-        return 'userlock';
+        return 'userlocks';
     }
 
     /**

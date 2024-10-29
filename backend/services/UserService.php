@@ -57,4 +57,9 @@ class UserService
 
         return $writer->write($qrCode)->getString();
     }
+
+    public function getByEmail($email) {
+        $user = User::find()->where('email', $email)->first();
+        return $user;
+    }
 }

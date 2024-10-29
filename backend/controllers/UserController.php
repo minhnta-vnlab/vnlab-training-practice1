@@ -10,7 +10,7 @@ use backend\services\UserService;
 
 class UserController extends ActiveController
 {
-    public $modelClass = "common\models\User";
+    public $modelClass = "backend\models\User";
     public $cacheKey;
     protected $userService;
 
