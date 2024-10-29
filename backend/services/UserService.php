@@ -59,7 +59,7 @@ class UserService
     }
 
     public function getByEmail($email) {
-        $user = User::find()->where('email', $email)->first();
+        $user = User::find()->where(['email' => $email])->one();
         return $user;
     }
 }

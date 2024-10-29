@@ -37,6 +37,9 @@ class UserLockService {
 
     public function createLockByUser(User $user, $reason = "max_try_exceed") {
         $lock = UserLock::find()->where(["user_id" => $user->id])->one() ?? new UserLock();
+        if($lock->locked) {
+            return false;
+        }
         $lock->user_id = $user->id;
         $lock->locked = true;
         $lock->locked_at = DateConverter::convertToSQL(time());

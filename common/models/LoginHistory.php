@@ -68,4 +68,8 @@ class LoginHistory extends \yii\db\ActiveRecord
     {
         return $this->hasOne(User::class, ['id' => 'user_id']);
     }
+
+    public function isFailed() {
+        return $this->message != "login_success";
+    }
 }

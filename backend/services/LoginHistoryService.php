@@ -24,4 +24,31 @@ class LoginHistoryService {
         }
         return true;
     }
+
+    /**
+     * Get recent login histories
+     * @param \backend\models\User $user
+     * @param int $limit
+     * @return LoginHistory[]
+     */
+    public function getRecentLoginHistories($user, $limit = 5) {
+        $login_histories = LoginHistory::find()
+            ->where(['user_id' => $user->id])
+            ->orderBy(['login_time'=> SORT_DESC])
+            ->limit( $limit )
+            ->all();
+
+        return $login_histories;
+    }
+
+    public function getRecentFailLoginHistories($user, $limit = 5) {
+        $login_histories = $this->getRecentLoginHistories($user, $limit);
+        $id = 0;
+        while($id < count($login_histories) && $login_histories[$id]->isFailed()) {
+            $id++;
+        }
+
+        $failed_login_histories = array_slice( $login_histories, 0, $id );
+        return $failed_login_histories;
+    }
 }
