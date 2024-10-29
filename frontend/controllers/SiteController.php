@@ -1,6 +1,7 @@
 <?php
 namespace frontend\controllers;
 
+use common\models\UnlockUserForm;
 use frontend\models\User;
 use frontend\consts\TagKey;
 use frontend\models\TwoFAForm;
@@ -116,10 +117,29 @@ class SiteController extends Controller
             return $this->redirect($result['redirect']);
         }
 
+        $method = Yii::$app->request->get("method");
+        $email = Yii::$app->request->get("email");
+
         return $this->render('loginVerification', [
-            'method' => $result['method'],
-            'email' => $result['email'],
+            'method' => $method,
+            'email' => $email,
             'model' => $model,
         ]);
     }
-}
+
+    public function actionUnlock() {
+        $model = new UnlockUserForm();
+        if($model->load(Yii::$app->request->post()) && $model->validate()) {
+            $result = $this->authService->handleUnlock($model);
+            if (isset($result['redirect'])) {
+                return $this->redirect($result['redirect']);
+            }
+        }
+        $secret = Yii::$app->request->get('secret');
+        $model->unlock_secret = $secret;
+        $model->password = '';
+        return $this->render('unlock', [
+            'model' => $model,
+        ]);
+    }
+ }

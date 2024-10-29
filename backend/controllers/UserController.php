@@ -2,15 +2,15 @@
 namespace backend\controllers;
 
 use yii\rest\ActiveController;
-use common\models\User;
 use common\models\Update2FAForm;
 use Yii;
 use yii\web\Response;
+use backend\models\User;
 use backend\services\UserService;
 
 class UserController extends ActiveController
 {
-    public $modelClass = "common\models\User";
+    public $modelClass = "backend\models\User";
     public $cacheKey;
     protected $userService;
 

@@ -1,7 +1,7 @@
 <?php
 namespace backend\services;
 
-use common\models\User;
+use backend\models\User;
 use common\models\Update2FAForm;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Color\Color;
@@ -56,5 +56,10 @@ class UserService
         );
 
         return $writer->write($qrCode)->getString();
+    }
+
+    public function getByEmail($email) {
+        $user = User::find()->where(['email' => $email])->one();
+        return $user;
     }
 }

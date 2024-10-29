@@ -1,30 +1,26 @@
 <?php
-
-namespace common\models;
-
-use Yii;
-use backend\models\User;
-
+namespace backend\models;
 /**
- * This is the model class for table "loginhistories".
+ * This is the model class for table "userlock".
  *
  * @property int $id
- * @property int|null $user_id
- * @property string|null $ip
- * @property string|null $login_time
- * @property string|null $ua
- * @property string|null $message
+ * @property int $user_id
+ * @property bool $locked
+ * @property string|null $locked_at
+ * @property string|null $locked_reason
+ * @property string|null $unlock_secret
+ * @property string|null $unlock_at
  *
  * @property User $user
  */
-class LoginHistory extends \yii\db\ActiveRecord
+class UserLock extends \yii\db\ActiveRecord
 {
     /**
      * {@inheritdoc}
      */
     public static function tableName()
     {
-        return 'loginhistories';
+        return 'userlocks';
     }
 
     /**
@@ -33,13 +29,13 @@ class LoginHistory extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            ['id', 'integer'],
+            [['user_id'], 'required'],
             [['user_id'], 'default', 'value' => null],
             [['user_id'], 'integer'],
-            [['ip'], 'string'],
-            [['login_time'], 'safe'],
-            [['ua'], 'string', 'max' => 512],
-            [['message'], 'string', 'max' => 32],
+            [['locked'], 'boolean'],
+            [['locked_at', 'unlock_at'], 'safe'],
+            [['locked_reason'], 'string'],
+            [['unlock_secret'], 'string', 'max' => 255],
             [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::class, 'targetAttribute' => ['user_id' => 'id']],
         ];
     }
@@ -52,10 +48,11 @@ class LoginHistory extends \yii\db\ActiveRecord
         return [
             'id' => 'ID',
             'user_id' => 'User ID',
-            'ip' => 'Ip',
-            'login_time' => 'Login Time',
-            'ua' => 'Ua',
-            'message' => 'Message',
+            'locked' => 'Locked',
+            'locked_at' => 'Locked At',
+            'locked_reason' => 'Locked Reason',
+            'unlock_secret' => 'Unlock Secret',
+            'unlock_at' => 'Unlock At',
         ];
     }
 
@@ -67,9 +64,5 @@ class LoginHistory extends \yii\db\ActiveRecord
     public function getUser()
     {
         return $this->hasOne(User::class, ['id' => 'user_id']);
-    }
-
-    public function isFailed() {
-        return $this->message != "login_success";
     }
 }

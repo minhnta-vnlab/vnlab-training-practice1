@@ -35,7 +35,8 @@ return [
                 'host' => env('MAILTRAP_HOST'),
                 'username' => env('MAILTRAP_USERNAME'),
                 'password' => env('MAILTRAP_PASSWORD'),
-                'port' => env('MAILTRAP_PORT', 465),
+                'port' => env('MAILTRAP_PORT', 1025),
+                // 'encryption' => false,
             ],
             //
             // DSN example:

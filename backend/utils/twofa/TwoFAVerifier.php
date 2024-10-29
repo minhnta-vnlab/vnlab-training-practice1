@@ -1,7 +1,7 @@
 <?php
 namespace backend\utils\twofa;
 
-use common\models\LoginVerification;
+use backend\models\LoginVerification;
 
 class TwoFAVerifier implements ITwoFAVerifier {
     public $method;

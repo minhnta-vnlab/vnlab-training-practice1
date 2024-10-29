@@ -1,11 +1,10 @@
 <?php
 
-namespace common\models;
+namespace backend\models;
 
 use Yii;
 use yii\db\ActiveRecord;
-use yii\web\IdentityInterface;
-use yii\base\NotSupportedException;
+use common\models\LoginHistory;
 
 /**
  * This is the model class for table "users".

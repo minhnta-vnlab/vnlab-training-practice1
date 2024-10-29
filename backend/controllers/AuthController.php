@@ -1,18 +1,38 @@
 <?php
 namespace backend\controllers;
 
+use backend\services\LoginHistoryService;
+use backend\services\LoginVerificationService;
+use backend\services\UserLockService;
+use backend\services\UserService;
 use common\models\LoginForm;
-use common\models\LoginHistory;
-use common\models\LoginVerification;
 use common\models\RegisterForm;
-use backend\utils\DateConverter;
-use common\models\User;
+use common\models\UnlockUserForm;
 use yii\rest\Controller;
 use Yii;
 use yii\web\Response;
 
 class AuthController extends Controller
 {
+    protected LoginVerificationService $loginVerificationService;
+    protected UserLockService $lockService;
+    protected UserService $userService;
+    protected LoginHistoryService $loginHistoryService;
+    public function __construct(
+        $id, 
+        $module, 
+        LoginVerificationService $loginVerificationService, 
+        UserLockService $lockService,
+        UserService $userService,
+        LoginHistoryService $loginHistoryService,
+        $config = []
+    ) {
+        $this->loginVerificationService = $loginVerificationService;
+        $this->lockService = $lockService;
+        $this->userService = $userService;
+        $this->loginHistoryService = $loginHistoryService;
+        parent::__construct($id, $module, $config);
+    }
     public function behaviors()
     {
         return array_merge(parent::behaviors(), [
@@ -25,6 +45,7 @@ class AuthController extends Controller
         ]);
     }
 
+    // ACTIONS
     public function actionRegister()
     {
         $model = new RegisterForm();
@@ -69,7 +90,7 @@ class AuthController extends Controller
     public function actionVerify()
     {
         $id = Yii::$app->request->get('id');
-        $login_verification = LoginVerification::findOne($id);
+        $login_verification = $this->loginVerificationService->getById($id);
 
         if (!$login_verification) {
             return $this->respondWithError(404, 'Not Found', 'Login Verification with this id is not found');
@@ -88,6 +109,17 @@ class AuthController extends Controller
 
         return $this->processVerification($login_verification, $ip, $ua);
     }
+
+    public function actionUnlock() {
+        $model = new UnlockUserForm();
+        $model->setAttributes(Yii::$app->request->post());
+        if($model->validate()) {
+            return $this->handleUnlock($model);
+        }
+        return $this->respondWithError(400, $model->getFirstErrors());
+    }
+
+    // RESPONSES
 
     protected function respondWithError($statusCode, $message, $data = null)
     {
@@ -108,23 +140,13 @@ class AuthController extends Controller
         ];
     }
 
+    // HANDLERS
+
     protected function handleSuccessfulLogin($user)
     {
-        $login_verification = LoginVerification::find()->where(['user_id' => $user->id])->one() ?? new LoginVerification();
-        $time = time();
-        $exp = $time + env('VERIFICATION_EXP') * 60;
+        $login_verification = $this->loginVerificationService->createFromUser($user);
 
-        $login_verification->setAttributes([
-            'user_id' => $user->id,
-            'verification_method' => $user->two_fa_method,
-            'issued_at' => DateConverter::convertToSQL($time),
-            'expired_at' => DateConverter::convertToSQL($exp),
-            'code' => $user->two_fa_method == 'email' ? Yii::$app->security->generateRandomString(6) : null,
-            'active' => 1,
-            'num_try' => 0,
-        ]);
-
-        if (!$login_verification->save()) {
+        if (!$login_verification) {
             return $this->respondWithError(500, 'Internal Server Error', 'Something wrong when creating verification');
         }
 
@@ -137,25 +159,32 @@ class AuthController extends Controller
         ]);
     }
 
-    protected function handleFailedLogin($email)
+    protected function handleFailedLogin($email, $reason = 'Email or password is incorrect')
     {
-        $user = User::find()->where(['email' => $email])->one();
-        if ($user !== null) {
-            $this->logFailedLogin($user);
+        $lock = $this->lockService->getByUserEmail($email);
+        if(isset($lock) && $lock->locked) {
+            $this->logFailedLogin($lock->user, "login_fail_account_locked");
+            $reason = "This account is locked";
+            return $this->respondWithError(403, $reason, 'Unauthorized');
         }
 
-        return $this->respondWithError(403, 'Email or password is incorrect', 'Unauthorized');
+        $user = $this->userService->getByEmail($email);
+        if ($user !== null) {
+            $this->logFailedLogin($user);
+            $login_histories = $this->loginHistoryService->getRecentFailLoginHistories($user);
+            if(count($login_histories) >= 5) {
+                $this->lockUser($user, 'login_fail_spam');
+                $reason = $reason.". Your account has been locked because failed too many times.";
+            }
+            return $this->respondWithError(403, $reason, 'Unauthorized');
+        }
+
+        return $this->respondWithError(403, "Unknown reason", 'Unauthorized');
     }
 
-    protected function logFailedLogin($user)
+    protected function logFailedLogin($user, $reason = "login_fail_wrong_password")
     {
-        $login_history = new LoginHistory();
-        $login_history->user_id = $user->id;
-        $login_history->message = "login_fail_wrong_password";
-        $remoteIp = Yii::$app->request->headers->get('X-Real-IP');
-        $login_history->ip = $remoteIp;
-        $login_history->ua = Yii::$app->request->userAgent;
-        $login_history->save();
+        $this->loginHistoryService->createWithMessage($user, $reason, Yii::$app->request);
     }
 
     protected function getClientIp()
@@ -172,8 +201,7 @@ class AuthController extends Controller
             $this->logVerificationFailure($user, "login_fail_verification_expired", $login_verification->issued_at, $ip, $ua);
         }
 
-        $login_verification->active = 0;
-        $login_verification->save();
+        $this->loginVerificationService->deactivate($login_verification);
 
         return $this->respondWithError(400, 'Login Verification already expired', ['redirect' => 'login']);
     }
@@ -182,29 +210,22 @@ class AuthController extends Controller
     protected function handleMaxTriesExceeded($login_verification, $ip, $ua)
     {
         $user = $login_verification->user;
-        $login_verification->active = 0;
-        $login_verification->save();
+        $this->loginVerificationService->deactivate($login_verification);
 
         $this->logVerificationFailure($user, "login_fail_verification_max_try", $login_verification->issued_at, $ip, $ua);
+        $this->lockUser($user);
 
-        return $this->respondWithError(400, 'Reached the maximum number of verification attempts', ['redirect' => 'login']);
+        return $this->respondWithError(400, 'Reached the maximum number of verification attempts.', ['redirect' => 'login', 'message' => " Your account has been locked."]);
     }
 
     protected function logVerificationFailure($user, $message, $issuedAt, $ip, $ua)
     {
-        $login_history = new LoginHistory();
-        $login_history->user_id = $user->id;
-        $login_history->message = $message;
-        $login_history->login_time = $issuedAt;
-        $login_history->ip = $ip;
-        $login_history->ua = $ua;
-        $login_history->save();
+        $this->loginHistoryService->createWithMessage($user, $message, Yii::$app->request);
     }
 
     protected function processVerification($login_verification, $ip, $ua)
     {
         $code = Yii::$app->request->post('code');
-        /** @var \backend\utils\twofa\TwoFAVerifier $verifier */
         $verifier = Yii::$app->twoFAVerifier;
         $result = $verifier
             ->useMethod($login_verification->verification_method)
@@ -214,6 +235,11 @@ class AuthController extends Controller
         $remain = $login_verification->max_try - $current_try;
 
         if (!$result) {
+            $login_verification->num_try = $current_try;
+            $login_verification->save();
+            if($login_verification->hasExceedMaxTries()) {
+                return $this->handleMaxTriesExceeded($login_verification, $ip, $ua);
+            }
             return $this->respondWithError(403, 'Verification code is not correct.', [
                 'num_try' => $current_try,
                 'max_try' => $login_verification->max_try,
@@ -221,7 +247,8 @@ class AuthController extends Controller
             ]);
         }
 
-        $this->finalizeVerification($login_verification, $ip, $ua);
+        $this->loginVerificationService->deactivate($login_verification);
+        $this->loginHistoryService->createSuccess($login_verification->user, Yii::$app->request);
         return [
             'message' => 'Verified',
             'data' => [
@@ -239,17 +266,32 @@ class AuthController extends Controller
         ];
     }
 
-    protected function finalizeVerification($login_verification, $ip, $ua)
-    {
-        $user = $login_verification->user;
-        $login_verification->active = 0;
-        $login_verification->save();
+    protected function handleUnlock(UnlockUserForm $model) {
+        $secret = $model->unlock_secret;
+        $lock = $this->lockService->getBySecret($secret);
+        if ($lock) {
+            if($this->lockService->unlock($lock, $model->password)) {
+                return $this->respondWithSuccess(200, "Account unlocked");
+            }
+            return $this->respondWithError(400, "Wrong password");
+        }
+        return $this->respondWithError(400, "No lock is found");
+    }
 
-        $login_history = new LoginHistory();
-        $login_history->user_id = $user->id;
-        $login_history->message = "login_success";
-        $login_history->ip = $ip;
-        $login_history->ua = $ua;
-        $login_history->save();
+    protected function lockUser($user, $reason = "max_try_exceed") {
+        $lock = $this->lockService->createLockByUser($user, $reason);
+        if($lock) {
+            $host = Yii::$app->request->hostInfo;
+            Yii::$app->mailer->compose()
+                ->setTo($user->email)
+                ->setFrom("website@example.com")
+                ->setSubject("Account locked")
+                ->setTextBody("Your account has been locked due to". 
+                                    $reason 
+                                    .". To unlock your account please visit: $host/site/unlock?secret=".$lock->unlock_secret)
+                ->send();
+            return true;
+        }
+        return false;
     }
 }

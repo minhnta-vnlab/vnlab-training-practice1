@@ -1,7 +1,7 @@
 <?php
 namespace backend\utils\twofa;
 
-use common\models\LoginVerification;
+use backend\models\LoginVerification;
 
 class NoTwoFAVerifier implements ITwoFAVerifier {
     private function __construct() {}

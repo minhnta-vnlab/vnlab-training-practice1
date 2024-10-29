@@ -3,7 +3,7 @@
 
 /** @var yii\web\View $this */
 /** @var yii\bootstrap5\ActiveForm $form */
-/** @var common\models\User $user */
+/** @var frontend\models\User $user */
 /** @var common\models\Update2FAForm $model */
 /** @var yii\data\ArrayDataProvider $dataProvider */
 

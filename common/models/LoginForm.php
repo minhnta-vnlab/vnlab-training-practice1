@@ -2,8 +2,10 @@
 
 namespace common\models;
 
+use backend\models\UserLock;
 use Yii;
 use yii\base\Model;
+use backend\models\User;
 
 /**
  * Login form
@@ -72,6 +74,14 @@ class LoginForm extends Model
      */
     public function login()
     {
+        $lock = UserLock::find()->joinWith("user")
+        ->where(["users.email" => $this->email])
+        ->orderBy(["locked_at" => SORT_DESC])
+        ->one();
+        if(isset($lock) && $lock->locked) {
+            return false;
+        }
+
         if($this->validate()) {
             return $this->_user;
         }
