@@ -31,18 +31,22 @@ class LoginHistoryService {
      * @param int $limit
      * @return LoginHistory[]
      */
-    public function getRecentLoginHistories($user, $limit = 5) {
-        $login_histories = LoginHistory::find()
+    public function getRecentLoginHistories($user, $limit = 5, $after = null) {
+        $query = LoginHistory::find()
             ->where(['user_id' => $user->id])
             ->orderBy(['login_time'=> SORT_DESC])
-            ->limit( $limit )
-            ->all();
+            ->limit( $limit );
+        if(isset($after)) {
+            $query = $query->andWhere(['>', 'login_time', $after]);
+        }
+
+        $login_histories = $query->all();
 
         return $login_histories;
     }
 
-    public function getRecentFailLoginHistories($user, $limit = 5) {
-        $login_histories = $this->getRecentLoginHistories($user, $limit);
+    public function getRecentFailLoginHistories($user, $limit = 5, $after = null) {
+        $login_histories = $this->getRecentLoginHistories($user, $limit, $after);
         $id = 0;
         while($id < count($login_histories) && $login_histories[$id]->isFailed()) {
             $id++;
