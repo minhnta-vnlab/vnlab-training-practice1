@@ -171,7 +171,8 @@ class AuthController extends Controller
         $user = $this->userService->getByEmail($email);
         if ($user !== null) {
             $this->logFailedLogin($user);
-            $login_histories = $this->loginHistoryService->getRecentFailLoginHistories($user);
+            $last_unlock_time = $this->lockService->getLastUnlockedTime($user);
+            $login_histories = $this->loginHistoryService->getRecentFailLoginHistories($user, after: $last_unlock_time);
             if(count($login_histories) >= 5) {
                 $this->lockUser($user, 'login_fail_spam');
                 $reason = $reason.". Your account has been locked because failed too many times.";
@@ -281,12 +282,12 @@ class AuthController extends Controller
     protected function lockUser($user, $reason = "max_try_exceed") {
         $lock = $this->lockService->createLockByUser($user, $reason);
         if($lock) {
-            $host = Yii::$app->request->hostInfo;
+            $host = Yii::$app->request->remoteHost ?? Yii::$app->request->hostInfo;
             Yii::$app->mailer->compose()
                 ->setTo($user->email)
                 ->setFrom("website@example.com")
                 ->setSubject("Account locked")
-                ->setTextBody("Your account has been locked due to". 
+                ->setTextBody("Your account has been locked due to ". 
                                     $reason 
                                     .". To unlock your account please visit: $host/site/unlock?secret=".$lock->unlock_secret)
                 ->send();

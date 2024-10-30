@@ -35,6 +35,21 @@ class UserLockService {
         return false;
     }
 
+    public function getLastLockedTime(User $user) {
+        $lock = UserLock::find()->where(["user_id" => $user->id])->one();
+        if(empty($lock)) {
+            return null;
+        }
+        return $lock->locked_at;
+    }
+    public function getLastUnlockedTime(User $user) {
+        $lock = UserLock::find()->where(["user_id" => $user->id])->one();
+        if(empty($lock)) {
+            return null;
+        }
+        return $lock->unlock_at;
+    }
+
     public function createLockByUser(User $user, $reason = "max_try_exceed") {
         $lock = UserLock::find()->where(["user_id" => $user->id])->one() ?? new UserLock();
         if($lock->locked) {
